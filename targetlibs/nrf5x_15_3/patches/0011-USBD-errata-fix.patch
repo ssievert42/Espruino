@@ -1,5 +1,5 @@
---- a/targetlibs/nrf5x_15_3/components/drivers_nrf/usbd/nrf_drv_usbd_errata.h
-+++ b/targetlibs/nrf5x_15_3/components/drivers_nrf/usbd/nrf_drv_usbd_errata.h
+--- a/targetlibs/nrf5x_15_3/integration/nrfx/legacy/nrf_drv_usbd_errata.h
++++ b/targetlibs/nrf5x_15_3/integration/nrfx/legacy/nrf_drv_usbd_errata.h
 @@ -93,8 +93,10 @@
   */
  static inline bool nrf_drv_usbd_errata_type_52840_fp1(void)
