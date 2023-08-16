@@ -736,6 +736,16 @@ codeOut('}')
 codeOut('')
 codeOut('')
 
+codeOut("/** Tasks to run on Initialisation AFTER the initial JS has run */")
+codeOut('void jswPostInit() {')
+for jsondata in jsondatas:
+  if "type" in jsondata and jsondata["type"]=="postinit":
+    codeOut("  "+jsondata["generate"]+"();")
+codeOut('}')
+
+codeOut('')
+codeOut('')
+
 codeOut("/** Tasks to run on Deinitialisation (eg before save/reset/etc) */")
 codeOut('void jswKill() {')
 for jsondata in jsondatas:
