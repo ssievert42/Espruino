@@ -47,6 +47,7 @@ if [ "$BOARDNAME" = "ALL" ]; then
   PROVISION_RASPBERRYPI=1
   PROVISION_EMSCRIPTEN=1
   PROVISION_EMSCRIPTEN2=1
+  PROVISION_XIAOBLE=1
 else
   FAMILY=`scripts/get_board_info.py $BOARDNAME 'board.chip["family"]'`
   if [ "$FAMILY" = "" ]; then
