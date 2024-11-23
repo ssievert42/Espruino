@@ -107,6 +107,9 @@
 #ifdef USE_SHA512
 #define MBEDTLS_SHA512_C
 #endif
+#ifdef USE_AES_CCM
+#define MBEDTLS_CCM_C
+#endif
 
 #include "jsvar.h"
 
