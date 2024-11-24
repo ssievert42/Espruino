@@ -141,6 +141,7 @@ JsVar *jswrap_ble_connect(JsVar *mac, JsVar *options);
 void jswrap_ble_setWhitelist(bool whitelist);
 void jswrap_ble_setConnectionInterval(JsVar *interval);
 void jswrap_ble_setSecurity(JsVar *options);
+JsVar *jswrap_ble_getSecurityOptions();
 JsVar *jswrap_ble_getSecurityStatus(JsVar *parent);
 JsVar *jswrap_ble_startBonding(bool forceRePair);
 
