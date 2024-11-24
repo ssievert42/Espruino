@@ -3743,6 +3743,20 @@ void jswrap_ble_setSecurity(JsVar *options) {
   }
 }
 
+/*JSON{
+    "type" : "staticmethod",
+    "class" : "NRF",
+    "name" : "getSecurityOptions",
+    "ifdef" : "NRF52_SERIES",
+    "generate" : "jswrap_ble_getSecurityOptions",
+    "return" : ["JsVar", "Currently set security options, as previously passed to NRF.setSecurity()"]
+}
+*/
+JsVar *jswrap_ble_getSecurityOptions() {
+  JsVar *options = jsvObjectGetChildIfExists(execInfo.hiddenRoot, BLE_NAME_SECURITY);
+  return options;
+}
+
 /*TYPESCRIPT
 type NRFSecurityStatus = {
   advertising: boolean,
