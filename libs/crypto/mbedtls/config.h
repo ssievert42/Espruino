@@ -87,6 +87,7 @@
 
 #endif
 
+#ifdef USE_AES
 /* common mbed TLS feature support */
 #define MBEDTLS_CIPHER_MODE_CBC
 #define MBEDTLS_CIPHER_MODE_CFB
@@ -98,6 +99,7 @@
 #define MBEDTLS_MD_C
 #define MBEDTLS_OID_C
 #define MBEDTLS_PKCS5_C
+#endif
 #ifndef USE_SHA1_JS
 #define MBEDTLS_SHA1_C
 #endif
@@ -109,6 +111,10 @@
 #endif
 #ifdef USE_AES_CCM
 #define MBEDTLS_CCM_C
+#ifndef USE_AES
+#define MBEDTLS_AES_C
+#define MBEDTLS_CIPHER_C
+#endif
 #endif
 
 #include "jsvar.h"
