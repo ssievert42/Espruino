@@ -2373,6 +2373,26 @@ void jswrap_espruino_rebootToDFU() {
 #endif
 }
 
+/*JSON{
+  "type" : "staticmethod",
+  "ifdef" : "ESPR_HAS_BOOTLOADER_UF2",
+  "class" : "E",
+  "name" : "rebootToUF2",
+  "generate" : "jswrap_espruino_rebootToUF2"
+}
+Forces a hard reboot of the microcontroller into the UF2 bootloader.
+
+**Note:** The device will stay in bootloader mode until it is power-cycled or reset.
+*/
+void jswrap_espruino_rebootToUF2() {
+#ifdef ESPR_HAS_BOOTLOADER_UF2
+  jsiKill();
+  jsvKill();
+  jshKill();
+  jshRebootToUF2Bootloader();
+#endif
+}
+
 // ----------------------------------------- USB Specific Stuff
 
 #ifdef USE_USB_HID

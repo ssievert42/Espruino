@@ -412,6 +412,11 @@ void jshReboot();
 void jshRebootToDFU();
 #endif
 
+#ifdef ESPR_HAS_BOOTLOADER_UF2
+/// Reboot to the UF2 bootloader. Device will reappear as a USB drive.
+void jshRebootToUF2Bootloader();
+#endif
+
 #if JSH_PORTV_COUNT>0
 /// handler for virtual ports (eg. pins on an IO Expander). This should be defined for each type of board used
 void jshVirtualPinInitialise();
