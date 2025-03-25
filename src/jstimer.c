@@ -26,8 +26,8 @@ volatile unsigned char utilTimerTasksTail = 0;
 volatile bool utilTimerOn = false;
 /// When we rescheduled the timer, how far in the future were we meant to get called (in system time)?
 int utilTimerPeriod;
-/// The system time at which the util timer's period was last set
-JsSysTime utilTimerSetTime;
+/// The system time from which the timer was last scheduled - add utilTimerPeriod to this to get the time when the timer should be called next
+JsSysTime utilTimerStartTime = 0;
 /// Incremented with utilTimerPeriod - used when we're adding multiple items and we want them all relative to each other
 volatile int utilTimerOffset;
 
@@ -217,10 +217,12 @@ void jstUtilTimerInterruptHandler() {
 
     // re-schedule the timer if there is something left to do
     if (utilTimerTasksTail != utilTimerTasksHead) {
+      utilTimerStartTime += utilTimerPeriod;
       utilTimerPeriod = utilTimerTasks[utilTimerTasksTail].time;
-      utilTimerSetTime = jshGetSystemTime();
       if (utilTimerPeriod<0) utilTimerPeriod=0;
-      jshUtilTimerReschedule(utilTimerPeriod);
+      JsSysTime waitTime = utilTimerStartTime + (JsSysTime)utilTimerPeriod - jshGetSystemTime();
+      if (waitTime<0) waitTime=0;
+      jshUtilTimerReschedule(waitTime);
     } else {
       utilTimerOn = false;
       jshUtilTimerDisable();
@@ -255,9 +257,12 @@ static bool utilTimerIsFull() {
 need to be called by anything outside jstimer.c */
 void  jstRestartUtilTimer() {
   utilTimerPeriod = utilTimerTasks[utilTimerTasksTail].time;
-  utilTimerSetTime = jshGetSystemTime();
+  JsSysTime currentTime = jshGetSystemTime();
+  if (!utilTimerOn)utilTimerStartTime = currentTime;
   if (utilTimerPeriod<0) utilTimerPeriod=0;
-  jshUtilTimerStart(utilTimerPeriod);
+  JsSysTime waitTime = utilTimerStartTime + (JsSysTime)utilTimerPeriod - currentTime;
+  if (waitTime<0) waitTime=0;
+  jshUtilTimerStart(waitTime);
 }
 
 /** Queue a task up to be executed when a timer fires... return false on failure.
@@ -274,8 +279,13 @@ bool utilTimerInsertTask(UtilTimerTask *task, uint32_t *timerOffset) {
   if (timerOffset)
     task->time += (int)*timerOffset - (int)utilTimerOffset;
 
+  JsSysTime currentTime = jshGetSystemTime();
+  if (!utilTimerOn) {
+    utilTimerStartTime = currentTime;
+  }
+
   // How long was it since the timer was last scheduled? Update existing tasks #2575
-  uint32_t timePassed = jshGetSystemTime() - utilTimerSetTime;
+  uint32_t timePassed = currentTime - utilTimerStartTime;
   // find out where to insert
   unsigned char insertPos = utilTimerTasksTail;
   while (insertPos != utilTimerTasksHead && utilTimerTasks[insertPos].time < (task->time+timePassed))
@@ -301,6 +311,7 @@ bool utilTimerInsertTask(UtilTimerTask *task, uint32_t *timerOffset) {
         utilTimerTasks[i].time = 0;
       i = (i+1) & (UTILTIMERTASK_TASKS-1);
     }
+    utilTimerStartTime += timePassed;
   } else // timer hasn't changed, we have to update our task's time
     task->time += timePassed;
   // add new item
@@ -651,7 +662,7 @@ void jstReset() {
   utilTimerTasksTail = utilTimerTasksHead = 0;
   utilTimerOffset = 0;
   utilTimerPeriod = 0;
-  utilTimerSetTime = jshGetSystemTime();
+  utilTimerStartTime = jshGetSystemTime();
 }
 
 /** when system time is changed, also change the time in the timers.
