@@ -149,6 +149,14 @@ typedef enum  {
   BLE_RESET_ON_SOFTDEVICE_START = BLE_IS_SENDING|BLE_IS_SCANNING|BLE_IS_ADVERTISING
 } BLEStatus;
 
+typedef enum {
+    BLEI_IN_INIT = 1 << 0,
+    BLEI_CALLED_SET_ADVERTISING = 1 << 1,
+    BLEI_CALLED_SET_SERVICES = 1 << 2,
+    BLEI_CALLED_UPDATE_SECURITY = 1 << 3,
+    BLEI_CLEAR_ON_INIT = BLEI_CALLED_SET_SERVICES | BLEI_CALLED_UPDATE_SECURITY | BLEI_CALLED_SET_ADVERTISING,
+} BLEInitStatus;
+
 typedef enum  {
   BLE_BOND_REQUEST,
   BLE_BOND_START,
@@ -216,6 +224,7 @@ typedef enum {
 
 
 extern volatile BLEStatus bleStatus;
+extern volatile uint8_t bleInitStatus;
 /// Filter to use when discovering BLE Services/Characteristics
 extern ble_uuid_t bleUUIDFilter;
 

@@ -232,6 +232,8 @@ void jswrap_ble_init() {
   }
   // Set advertising interval back to default
   bleAdvertisingInterval = MSEC_TO_UNITS(BLUETOOTH_ADVERTISING_INTERVAL, UNIT_0_625_MS);           /**< The advertising interval (in units of 0.625 ms). */
+  bleInitStatus |= BLEI_IN_INIT;
+  bleInitStatus &= ~BLEI_CLEAR_ON_INIT;
 }
 
 /*JSON{
@@ -239,8 +241,15 @@ void jswrap_ble_init() {
   "generate" : "jswrap_ble_postinit"
 }*/
 void jswrap_ble_postinit() {
-  // Now set up whatever advertising we were doing before
-  jswrap_ble_reconfigure_softdevice();
+  bool shouldRestartSoftdevice = bleStatus & BLE_NEEDS_SOFTDEVICE_RESTART && !jsble_has_connection();
+  if (!shouldRestartSoftdevice) {
+    // Now set up whatever advertising we were doing before
+    jswrap_ble_reconfigure_softdevice();
+  }
+  bleInitStatus &= ~BLEI_IN_INIT;
+  if (shouldRestartSoftdevice) {
+    jsble_restart_softdevice(NULL);
+  }
 }
 
 /** Reconfigure the softdevice (on init or after restart) to have all the services/advertising we need */
@@ -254,20 +263,26 @@ void jswrap_ble_reconfigure_softdevice() {
   if (v) jsble_set_rssi_scan(true);
   jsvUnLock(v);
   // advertising
-  v = jsvObjectGetChildIfExists(execInfo.hiddenRoot, BLE_NAME_ADVERTISE_DATA);
-  o = jsvObjectGetChildIfExists(execInfo.hiddenRoot, BLE_NAME_ADVERTISE_OPTIONS);
-  jswrap_ble_setAdvertising(v, o);
-  jsvUnLock2(v,o);
+  if (!(bleInitStatus & BLEI_IN_INIT) || !(bleInitStatus & BLEI_CALLED_SET_ADVERTISING)) {
+    v = jsvObjectGetChildIfExists(execInfo.hiddenRoot, BLE_NAME_ADVERTISE_DATA);
+    o = jsvObjectGetChildIfExists(execInfo.hiddenRoot, BLE_NAME_ADVERTISE_OPTIONS);
+    jswrap_ble_setAdvertising(v, o);
+    jsvUnLock2(v, o);
+  }
   // services
-  v = jsvObjectGetChildIfExists(execInfo.hiddenRoot, BLE_NAME_SERVICE_DATA);
-  jsble_set_services(v);
-  jsvUnLock(v);
+  if (!(bleInitStatus & BLEI_IN_INIT) || !(bleInitStatus & BLEI_CALLED_SET_SERVICES)) {
+    v = jsvObjectGetChildIfExists(execInfo.hiddenRoot, BLE_NAME_SERVICE_DATA);
+    jsble_set_services(v);
+    jsvUnLock(v);
+  }
   // If we had scan response data set, update it
   JsVar *scanData = jsvObjectGetChildIfExists(execInfo.hiddenRoot, BLE_NAME_SCAN_RESPONSE_DATA);
   if (scanData) jswrap_ble_setScanResponse(scanData);
   jsvUnLock(scanData);
   // Set up security related stuff
-  jsble_update_security();
+  if (!(bleInitStatus & BLEI_IN_INIT) || !(bleInitStatus & BLEI_CALLED_UPDATE_SECURITY)) {
+    jsble_update_security();
+  }
 }
 
 /*JSON{
@@ -674,6 +689,10 @@ certain number of unique UUIDs. Once these are all used the only option is to
 restart the softdevice to clear them all out.
 */
 void jswrap_ble_restart(JsVar *callback) {
+  if(bleInitStatus & BLEI_IN_INIT) {
+    bleStatus |= BLE_NEEDS_SOFTDEVICE_RESTART;
+    return;
+  }
   if (jsble_has_connection()) {
     jsiConsolePrintf("BLE Connected, queueing BLE restart for later\n");
     bleStatus |= BLE_NEEDS_SOFTDEVICE_RESTART;
@@ -1167,6 +1186,10 @@ Nordic suggest changing advertising between `coded,1mbps` and `1mbps,coded` ever
 
 */
 void jswrap_ble_setAdvertising(JsVar *data, JsVar *options) {
+  if (bleInitStatus & BLEI_IN_INIT) {
+    bleInitStatus |= BLEI_CALLED_SET_ADVERTISING;
+  }
+
   uint32_t err_code = 0;
   bool isAdvertising = bleStatus & BLE_IS_ADVERTISING;
 

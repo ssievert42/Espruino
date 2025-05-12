@@ -208,6 +208,7 @@ volatile bool nfcEnabled = false;
 uint16_t bleAdvertisingInterval = MSEC_TO_UNITS(BLUETOOTH_ADVERTISING_INTERVAL, UNIT_0_625_MS);
 
 volatile BLEStatus bleStatus = 0;
+volatile uint8_t bleInitStatus = 0;
 ble_uuid_t bleUUIDFilter;
 /// When doing service discovery, this is the last handle we'll need to discover with
 uint16_t bleFinalHandle;
@@ -2081,7 +2082,7 @@ static ble_gap_sec_params_t get_gap_sec_params() {
 
 #if PEER_MANAGER_ENABLED
 static bool jsble_can_pair_with_peer(const ble_gap_sec_params_t *own_params, const ble_gap_sec_params_t *peer_params) {
-  if (bleStatus & BLE_IS_NOT_PAIRABLE) {
+  if (bleStatus & BLE_IS_NOT_PAIRABLE || bleInitStatus & BLEI_IN_INIT) {
     // reject all security procedures to prevent any peer from pairing with us
     return false;
   } else {
@@ -2128,6 +2129,10 @@ static bool jsble_can_pair_with_peer(const ble_gap_sec_params_t *own_params, con
 
 void jsble_update_security() {
 #if PEER_MANAGER_ENABLED
+  if (bleInitStatus & BLEI_IN_INIT) {
+    bleInitStatus |= BLEI_CALLED_UPDATE_SECURITY;
+  }
+
   bool encryptUart = false;
   bool mitmProtect = false;
   ble_gap_sec_params_t sec_param = get_gap_sec_params();
@@ -2184,6 +2189,8 @@ void jsble_update_security() {
     jsble_setPrivacy(privacy);
     jsvUnLock(privacy);
 #endif // ESPR_BLE_PRIVATE_ADDRESS_SUPPORT
+  } else {
+    bleStatus &= ~BLE_IS_NOT_PAIRABLE;
   }
   // If UART encryption or mitm protection status changed, we need to update flags and restart Bluetooth
   if (((bleStatus & BLE_ENCRYPT_UART) != 0) != encryptUart || ((bleStatus & BLE_SECURITY_MITM) != 0) != mitmProtect) {
@@ -3131,6 +3138,10 @@ void set_security_mode(ble_gap_conn_sec_mode_t *perm, JsVar *configVar) {
  * only do this *once* - so to change it we must reset the softdevice and
  * then call this again */
 void jsble_set_services(JsVar *data) {
+  if (bleInitStatus & BLEI_IN_INIT) {
+    bleInitStatus |= BLEI_CALLED_SET_SERVICES;
+  }
+
   uint32_t err_code;
 
   if (jsvIsObject(data)) {
